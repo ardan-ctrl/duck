@@ -21,6 +21,7 @@ class EpisodeManifest:
     script_path: Path
     visuals: list[Path] = field(default_factory=list)
     style_id: str = "default_style"
+    music_path: Path | None = None
     overrides: list[SceneOverride] = field(default_factory=list)
 
 

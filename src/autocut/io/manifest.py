@@ -24,11 +24,14 @@ def load_manifest(repo_root: Path, episode_id: str) -> EpisodeManifest:
             )
         )
 
+    music_rel = raw.get("music")
+
     return EpisodeManifest(
         episode_id=episode_id,
         audio_path=episode_dir / raw["audio"],
         script_path=episode_dir / raw["script"],
         visuals=[episode_dir / p for p in raw.get("visuals", [])],
         style_id=raw.get("style_id", "default_style"),
+        music_path=(episode_dir / music_rel) if music_rel else None,
         overrides=overrides,
     )

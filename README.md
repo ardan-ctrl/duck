@@ -39,6 +39,9 @@ tests/               # Тесты
 - FFmpeg = финальный mux/concat.
 - Локальная LLM через Ollama = смысловые титры.
 - Локальный ASR через faster-whisper = реальные таймкоды речи.
+- Semantic hooks quality gate = фильтрация/нормализация заголовков.
+- Музыка + ducking (voice приоритет) при ffmpeg-рендере.
+- Экспорт двух версий: `final.mp4` и `alt.mp4`.
 
 Пример запуска:
 
@@ -56,7 +59,7 @@ python scripts/run_pipeline.py \
 ## Быстрый процесс для нового ролика
 
 1. Положить файлы в `input/<episode_id>/`.
-2. Заполнить `episode_manifest.json`.
+2. Заполнить `episode_manifest.json` (можно добавить `music`).
 3. (Опционально) добавить `overrides` внутри манифеста для ручных точечных правок.
 4. Запустить `scripts/run_pipeline.py` с нужными провайдерами.
 5. Проверить артефакты в `output/<episode_id>/artifacts`.
@@ -65,6 +68,7 @@ python scripts/run_pipeline.py \
 
 ```json
 {
+  "music": "bg_music.mp3",
   "overrides": [
     {"scene_index": 0, "headline": "ПЕРЕПИСАННЫЙ ХУК"},
     {"scene_index": 2, "visual_ref": "my_custom_slide.png"}
@@ -77,6 +81,9 @@ python scripts/run_pipeline.py \
 - [x] Скелет проекта и контракты данных.
 - [x] Плагинная схема провайдеров.
 - [x] Локальный LLM-хук через Ollama (с fallback).
+- [x] Semantic hooks quality gate.
 - [x] Локальный Remotion/FFmpeg коннектор (с fallback).
+- [x] Музыка + ducking для voice-over при наличии music-трека.
+- [x] Экспорт `final.mp4` + `alt.mp4`.
 - [x] Scene overrides для ручной точечной правки.
 - [ ] Финальный стиль маскотов и motion-шаблонов под production.

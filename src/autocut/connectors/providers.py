@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shlex
 import subprocess
 from pathlib import Path
@@ -13,11 +14,20 @@ from autocut.connectors.base import ASRConnector, HooksConnector, RenderConnecto
 from autocut.models import EpisodeManifest, ScenePlan, StoryBeat, TranscriptSegment
 
 
+def quality_gate_headline(text: str) -> str:
+    cleaned = re.sub(r"[^\w\s-]+", " ", text, flags=re.UNICODE)
+    words = [w for w in cleaned.split() if w]
+    if not words:
+        return "КЛЮЧЕВАЯ МЫСЛЬ"
+    words = words[:6]
+    if len(words) < 2:
+        words.append("ФАКТ")
+    return " ".join(words).upper()[:80]
+
+
 class ScriptASRConnector(ASRConnector):
     def transcribe(self, manifest: EpisodeManifest) -> list[TranscriptSegment]:
         return transcribe_audio(manifest)
-
-
 
 
 class FasterWhisperASRConnector(ASRConnector):
@@ -38,7 +48,7 @@ class FasterWhisperASRConnector(ASRConnector):
             segments, _info = model.transcribe(str(manifest.audio_path), vad_filter=True)
             result: list[TranscriptSegment] = []
             for seg in segments:
-                txt = (seg.text or '').strip()
+                txt = (seg.text or "").strip()
                 if not txt:
                     continue
                 result.append(TranscriptSegment(start_s=float(seg.start), end_s=float(seg.end), text=txt))
@@ -49,7 +59,10 @@ class FasterWhisperASRConnector(ASRConnector):
 
 class RulesHooksConnector(HooksConnector):
     def build_hooks(self, transcript: list[TranscriptSegment]) -> list[StoryBeat]:
-        return build_storybeats(transcript)
+        beats = build_storybeats(transcript)
+        for b in beats:
+            b.headline = quality_gate_headline(b.headline)
+        return beats
 
 
 class LocalOllamaHooksConnector(HooksConnector):
@@ -77,18 +90,15 @@ class LocalOllamaHooksConnector(HooksConnector):
         )
         with request.urlopen(req, timeout=20) as resp:  # nosec B310
             data = json.loads(resp.read().decode("utf-8"))
-        return (data.get("response") or "").strip().upper()[:80]
+        return quality_gate_headline(data.get("response") or "")
 
     def build_hooks(self, transcript: list[TranscriptSegment]) -> list[StoryBeat]:
         beats: list[StoryBeat] = []
         for seg in transcript:
             try:
                 headline = self._headline_from_llm(seg.text)
-                if not headline:
-                    headline = " ".join(seg.text.split()[:4]).upper()
             except Exception:
-                headline = " ".join(seg.text.split()[:4]).upper()
-
+                headline = quality_gate_headline(seg.text)
             beats.append(StoryBeat(start_s=seg.start_s, end_s=seg.end_s, headline=headline))
         return beats
 
@@ -159,7 +169,7 @@ class LocalFfmpegMuxConnector(RenderConnector):
     def _create_scene_clip(self, scene, clip_path: Path, width: int = 1080, height: int = 1920) -> None:
         duration = self._scene_duration(scene.start_s, scene.end_s)
         visual = Path(scene.visual_ref)
-        safe_headline = scene.headline.replace("'", "")[:50]
+        safe_headline = quality_gate_headline(scene.headline).replace("'", "")[:50]
 
         if visual.exists() and visual.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}:
             cmd = [
@@ -209,6 +219,21 @@ class LocalFfmpegMuxConnector(RenderConnector):
             ]
         self._run(cmd)
 
+    def _export_alt_version(self, final_path: Path, alt_path: Path) -> None:
+        self._run(
+            [
+                "ffmpeg",
+                "-y",
+                "-i",
+                str(final_path),
+                "-vf",
+                "eq=contrast=1.03:saturation=1.08,drawtext=text='ALT':x=w-tw-30:y=30:fontsize=28:fontcolor=white:box=1:boxcolor=black@0.35",
+                "-c:a",
+                "copy",
+                str(alt_path),
+            ]
+        )
+
     def render(self, scene_plan: ScenePlan, output_dir: str, manifest: EpisodeManifest | None = None) -> str:
         out_dir = Path(output_dir)
         temp_dir = out_dir / "tmp_clips"
@@ -223,12 +248,10 @@ class LocalFfmpegMuxConnector(RenderConnector):
 
         concat_list = out_dir / "concat_list.txt"
         entries: list[str] = []
-
         for idx, scene in enumerate(scene_plan.scenes):
             clip_path = temp_dir / f"scene_{idx:03d}.mp4"
             self._create_scene_clip(scene, clip_path)
             entries.append(f"file {shlex.quote(str(clip_path.resolve()))}")
-
         concat_list.write_text("\n".join(entries), encoding="utf-8")
 
         stitched = out_dir / "stitched.mp4"
@@ -247,7 +270,35 @@ class LocalFfmpegMuxConnector(RenderConnector):
         ])
 
         final_path = out_dir / "final.mp4"
-        if manifest and manifest.audio_path.exists() and manifest.audio_path.stat().st_size > 0:
+        has_voice = bool(manifest and manifest.audio_path.exists() and manifest.audio_path.stat().st_size > 0)
+        has_music = bool(manifest and manifest.music_path and manifest.music_path.exists() and manifest.music_path.stat().st_size > 0)
+
+        if has_voice and has_music and manifest:
+            self._run(
+                [
+                    "ffmpeg",
+                    "-y",
+                    "-i",
+                    str(stitched),
+                    "-i",
+                    str(manifest.audio_path),
+                    "-i",
+                    str(manifest.music_path),
+                    "-filter_complex",
+                    "[2:a]volume=0.25[m];[m][1:a]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=300[a]",
+                    "-map",
+                    "0:v",
+                    "-map",
+                    "[a]",
+                    "-c:v",
+                    "copy",
+                    "-c:a",
+                    "aac",
+                    "-shortest",
+                    str(final_path),
+                ]
+            )
+        elif has_voice and manifest:
             self._run([
                 "ffmpeg",
                 "-y",
@@ -264,6 +315,25 @@ class LocalFfmpegMuxConnector(RenderConnector):
             ])
         else:
             stitched.replace(final_path)
+
+        alt_path = out_dir / "alt.mp4"
+        try:
+            self._export_alt_version(final_path, alt_path)
+        except Exception:
+            alt_path.write_bytes(final_path.read_bytes())
+
+        (out_dir / "render_outputs.json").write_text(
+            json.dumps(
+                {
+                    "final": str(final_path),
+                    "alt": str(alt_path),
+                    "ducking": bool(has_voice and has_music),
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
         return str(final_path)
 
 
