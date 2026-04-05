@@ -1,0 +1,29 @@
+{
+  "resolution": "1080x1920",
+  "fps": 30,
+  "palette": {
+    "primary": "#d61020",
+    "secondary": "#1130ff",
+    "bg_dark": "#0d0d0d",
+    "text_light": "#f8f8f8"
+  },
+  "typography": {
+    "headline_font": "BebasNeue-Bold.ttf",
+    "annotation_font": "PermanentMarker-Regular.ttf"
+  },
+  "safe_zone": {
+    "top": 180,
+    "bottom": 280,
+    "left": 60,
+    "right": 60
+  },
+  "headline_rules": {
+    "max_words": 6,
+    "min_duration_s": 1.2,
+    "max_duration_s": 3.5
+  },
+  "mascot_rules": {
+    "default_entry": "pop_in",
+    "frequency": "every_3_scenes"
+  }
+}

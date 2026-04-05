@@ -1,0 +1,10 @@
+{
+  "id": "headline_punch",
+  "type": "kinetic_text",
+  "animation": {
+    "in": "scale_up",
+    "hold": "jitter_low",
+    "out": "swipe_left"
+  },
+  "duration_s": 1.8
+}
