@@ -18,6 +18,35 @@ class ScriptASRConnector(ASRConnector):
         return transcribe_audio(manifest)
 
 
+
+
+class FasterWhisperASRConnector(ASRConnector):
+    def __init__(self, settings: ProviderSettings) -> None:
+        self.settings = settings
+
+    def transcribe(self, manifest: EpisodeManifest) -> list[TranscriptSegment]:
+        try:
+            from faster_whisper import WhisperModel  # type: ignore
+        except Exception:
+            return transcribe_audio(manifest)
+
+        if not manifest.audio_path.exists() or manifest.audio_path.stat().st_size == 0:
+            return transcribe_audio(manifest)
+
+        try:
+            model = WhisperModel(self.settings.faster_whisper_model, device=self.settings.faster_whisper_device)
+            segments, _info = model.transcribe(str(manifest.audio_path), vad_filter=True)
+            result: list[TranscriptSegment] = []
+            for seg in segments:
+                txt = (seg.text or '').strip()
+                if not txt:
+                    continue
+                result.append(TranscriptSegment(start_s=float(seg.start), end_s=float(seg.end), text=txt))
+            return result or transcribe_audio(manifest)
+        except Exception:
+            return transcribe_audio(manifest)
+
+
 class RulesHooksConnector(HooksConnector):
     def build_hooks(self, transcript: list[TranscriptSegment]) -> list[StoryBeat]:
         return build_storybeats(transcript)
@@ -143,7 +172,7 @@ class LocalFfmpegMuxConnector(RenderConnector):
                 "-i",
                 str(visual),
                 "-vf",
-                f"scale={width}:{height}:force_original_aspect_ratio=cover,crop={width}:{height},drawtext=text='{safe_headline}':x=60:y=140:fontsize=72:fontcolor=white",
+                f"scale={width}:{height}:force_original_aspect_ratio=cover,crop={width}:{height},drawtext=text='{safe_headline}':x=(w-text_w)/2:y=120:fontsize=78:fontcolor=white:box=1:boxcolor=black@0.35:boxborderw=20",
                 "-r",
                 "30",
                 str(clip_path),
@@ -159,7 +188,7 @@ class LocalFfmpegMuxConnector(RenderConnector):
                 "-i",
                 str(visual),
                 "-vf",
-                f"scale={width}:{height}:force_original_aspect_ratio=cover,crop={width}:{height},drawtext=text='{safe_headline}':x=60:y=140:fontsize=72:fontcolor=white",
+                f"scale={width}:{height}:force_original_aspect_ratio=cover,crop={width}:{height},drawtext=text='{safe_headline}':x=(w-text_w)/2:y=120:fontsize=78:fontcolor=white:box=1:boxcolor=black@0.35:boxborderw=20",
                 "-r",
                 "30",
                 str(clip_path),
@@ -175,7 +204,7 @@ class LocalFfmpegMuxConnector(RenderConnector):
                 "-i",
                 f"color=c=black:s={width}x{height}:r=30",
                 "-vf",
-                f"drawtext=text='{safe_headline}':x=60:y=140:fontsize=72:fontcolor=white",
+                f"drawtext=text='{safe_headline}':x=(w-text_w)/2:y=120:fontsize=78:fontcolor=white:box=1:boxcolor=black@0.35:boxborderw=20",
                 str(clip_path),
             ]
         self._run(cmd)
@@ -241,6 +270,8 @@ class LocalFfmpegMuxConnector(RenderConnector):
 def get_asr_connector(settings: ProviderSettings) -> ASRConnector:
     if settings.asr_provider == "script_stub":
         return ScriptASRConnector()
+    if settings.asr_provider == "faster_whisper_local":
+        return FasterWhisperASRConnector(settings)
     raise ValueError(f"Unsupported ASR provider: {settings.asr_provider}")
 
 

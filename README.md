@@ -28,7 +28,7 @@ tests/               # Тесты
 ## Локальные провайдеры/коннекторы (без подписок)
 
 Поддерживаемые значения:
-- `--asr-provider script_stub`
+- `--asr-provider script_stub | faster_whisper_local`
 - `--hooks-provider rules_stub | ollama_local`
 - `--render-provider preview_stub | remotion_local | ffmpeg_local`
 
@@ -38,15 +38,16 @@ tests/               # Тесты
 - Remotion (локально) = рендер сцен.
 - FFmpeg = финальный mux/concat.
 - Локальная LLM через Ollama = смысловые титры.
+- Локальный ASR через faster-whisper = реальные таймкоды речи.
 
 Пример запуска:
 
 ```bash
 python scripts/run_pipeline.py \
   --episode episode_demo \
-  --asr-provider script_stub \
+  --asr-provider faster_whisper_local \
   --hooks-provider ollama_local \
-  --render-provider remotion_local
+  --render-provider ffmpeg_local
 ```
 
 Если `npx remotion`, `ollama` или `ffmpeg` недоступны, пайплайн не падает: пишет fallback-артефакт.
@@ -56,8 +57,20 @@ python scripts/run_pipeline.py \
 
 1. Положить файлы в `input/<episode_id>/`.
 2. Заполнить `episode_manifest.json`.
-3. Запустить `scripts/run_pipeline.py` с нужными провайдерами.
-4. Проверить артефакты в `output/<episode_id>/artifacts`.
+3. (Опционально) добавить `overrides` внутри манифеста для ручных точечных правок.
+4. Запустить `scripts/run_pipeline.py` с нужными провайдерами.
+5. Проверить артефакты в `output/<episode_id>/artifacts`.
+
+Пример `overrides` в `episode_manifest.json`:
+
+```json
+{
+  "overrides": [
+    {"scene_index": 0, "headline": "ПЕРЕПИСАННЫЙ ХУК"},
+    {"scene_index": 2, "visual_ref": "my_custom_slide.png"}
+  ]
+}
+```
 
 ## Статусы этапов (MVP)
 
@@ -65,6 +78,5 @@ python scripts/run_pipeline.py \
 - [x] Плагинная схема провайдеров.
 - [x] Локальный LLM-хук через Ollama (с fallback).
 - [x] Локальный Remotion/FFmpeg коннектор (с fallback).
-- [ ] Реальный ASR + таймкоды.
-- [ ] Компоновка сцен и маскотов.
-- [ ] Финальный MP4 mux/render.
+- [x] Scene overrides для ручной точечной правки.
+- [ ] Финальный стиль маскотов и motion-шаблонов под production.

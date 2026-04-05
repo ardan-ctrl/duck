@@ -5,12 +5,23 @@ from pathlib import Path
 
 
 @dataclass
+class SceneOverride:
+    scene_index: int
+    headline: str | None = None
+    visual_ref: str | None = None
+    start_s: float | None = None
+    end_s: float | None = None
+    mascot_action: str | None = None
+
+
+@dataclass
 class EpisodeManifest:
     episode_id: str
     audio_path: Path
     script_path: Path
     visuals: list[Path] = field(default_factory=list)
     style_id: str = "default_style"
+    overrides: list[SceneOverride] = field(default_factory=list)
 
 
 @dataclass
