@@ -18,3 +18,11 @@ def test_remotion_connector_fallback_creates_preview(tmp_path: Path) -> None:
     scene_plan = ScenePlan(episode_id="e1", scenes=[])
     output_path = connector.render(scene_plan, str(tmp_path))
     assert Path(output_path).exists()
+
+
+def test_ffmpeg_connector_returns_artifact(tmp_path: Path) -> None:
+    settings = ProviderSettings(render_provider="ffmpeg_local")
+    connector = get_render_connector(settings)
+    scene_plan = ScenePlan(episode_id="e1", scenes=[])
+    output_path = connector.render(scene_plan, str(tmp_path))
+    assert Path(output_path).exists()

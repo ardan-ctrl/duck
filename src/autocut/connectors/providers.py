@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shlex
 import subprocess
 from pathlib import Path
 from urllib import request
@@ -64,11 +65,11 @@ class LocalOllamaHooksConnector(HooksConnector):
 
 
 class PreviewRenderConnector(RenderConnector):
-    def render(self, scene_plan: ScenePlan, output_dir: str) -> str:
+    def render(self, scene_plan: ScenePlan, output_dir: str, manifest: EpisodeManifest | None = None) -> str:
         output_path = Path(output_dir) / "scene_plan_preview.txt"
         output_path.write_text(
             "\n".join(
-                f"[{s.start_s:.2f}-{s.end_s:.2f}] {s.headline} -> {s.visual_ref}"
+                f"[{s.start_s:.2f}-{s.end_s:.2f}] {s.headline} -> {Path(s.visual_ref).name}"
                 for s in scene_plan.scenes
             ),
             encoding="utf-8",
@@ -80,7 +81,7 @@ class LocalRemotionRenderConnector(RenderConnector):
     def __init__(self, settings: ProviderSettings) -> None:
         self.settings = settings
 
-    def render(self, scene_plan: ScenePlan, output_dir: str) -> str:
+    def render(self, scene_plan: ScenePlan, output_dir: str, manifest: EpisodeManifest | None = None) -> str:
         out_dir = Path(output_dir)
         props_path = out_dir / "remotion_props.json"
         out_video = out_dir / "remotion_render.mp4"
@@ -120,18 +121,121 @@ class LocalRemotionRenderConnector(RenderConnector):
 
 
 class LocalFfmpegMuxConnector(RenderConnector):
-    def render(self, scene_plan: ScenePlan, output_dir: str) -> str:
+    def _scene_duration(self, start_s: float, end_s: float) -> float:
+        return max(0.8, end_s - start_s)
+
+    def _run(self, cmd: list[str]) -> None:
+        subprocess.run(cmd, check=True, capture_output=True, text=True)
+
+    def _create_scene_clip(self, scene, clip_path: Path, width: int = 1080, height: int = 1920) -> None:
+        duration = self._scene_duration(scene.start_s, scene.end_s)
+        visual = Path(scene.visual_ref)
+        safe_headline = scene.headline.replace("'", "")[:50]
+
+        if visual.exists() and visual.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}:
+            cmd = [
+                "ffmpeg",
+                "-y",
+                "-loop",
+                "1",
+                "-t",
+                f"{duration:.2f}",
+                "-i",
+                str(visual),
+                "-vf",
+                f"scale={width}:{height}:force_original_aspect_ratio=cover,crop={width}:{height},drawtext=text='{safe_headline}':x=60:y=140:fontsize=72:fontcolor=white",
+                "-r",
+                "30",
+                str(clip_path),
+            ]
+        elif visual.exists() and visual.suffix.lower() in {".mp4", ".mov", ".mkv", ".webm"}:
+            cmd = [
+                "ffmpeg",
+                "-y",
+                "-stream_loop",
+                "-1",
+                "-t",
+                f"{duration:.2f}",
+                "-i",
+                str(visual),
+                "-vf",
+                f"scale={width}:{height}:force_original_aspect_ratio=cover,crop={width}:{height},drawtext=text='{safe_headline}':x=60:y=140:fontsize=72:fontcolor=white",
+                "-r",
+                "30",
+                str(clip_path),
+            ]
+        else:
+            cmd = [
+                "ffmpeg",
+                "-y",
+                "-f",
+                "lavfi",
+                "-t",
+                f"{duration:.2f}",
+                "-i",
+                f"color=c=black:s={width}x{height}:r=30",
+                "-vf",
+                f"drawtext=text='{safe_headline}':x=60:y=140:fontsize=72:fontcolor=white",
+                str(clip_path),
+            ]
+        self._run(cmd)
+
+    def render(self, scene_plan: ScenePlan, output_dir: str, manifest: EpisodeManifest | None = None) -> str:
         out_dir = Path(output_dir)
-        placeholder = out_dir / "ffmpeg_mux_preview.txt"
-        cmd = ["ffmpeg", "-version"]
+        temp_dir = out_dir / "tmp_clips"
+        temp_dir.mkdir(parents=True, exist_ok=True)
+
         try:
-            subprocess.run(cmd, check=True, capture_output=True, text=True)
-            placeholder.write_text(
-                "FFmpeg detected. Implement final concat/mix graph next.", encoding="utf-8"
-            )
+            self._run(["ffmpeg", "-version"])
         except (FileNotFoundError, subprocess.CalledProcessError):
+            placeholder = out_dir / "ffmpeg_mux_preview.txt"
             placeholder.write_text("FFmpeg not found. Install ffmpeg to enable mux stage.", encoding="utf-8")
-        return str(placeholder)
+            return str(placeholder)
+
+        concat_list = out_dir / "concat_list.txt"
+        entries: list[str] = []
+
+        for idx, scene in enumerate(scene_plan.scenes):
+            clip_path = temp_dir / f"scene_{idx:03d}.mp4"
+            self._create_scene_clip(scene, clip_path)
+            entries.append(f"file {shlex.quote(str(clip_path.resolve()))}")
+
+        concat_list.write_text("\n".join(entries), encoding="utf-8")
+
+        stitched = out_dir / "stitched.mp4"
+        self._run([
+            "ffmpeg",
+            "-y",
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            str(concat_list),
+            "-c",
+            "copy",
+            str(stitched),
+        ])
+
+        final_path = out_dir / "final.mp4"
+        if manifest and manifest.audio_path.exists() and manifest.audio_path.stat().st_size > 0:
+            self._run([
+                "ffmpeg",
+                "-y",
+                "-i",
+                str(stitched),
+                "-i",
+                str(manifest.audio_path),
+                "-c:v",
+                "copy",
+                "-c:a",
+                "aac",
+                "-shortest",
+                str(final_path),
+            ])
+        else:
+            stitched.replace(final_path)
+        return str(final_path)
 
 
 def get_asr_connector(settings: ProviderSettings) -> ASRConnector:

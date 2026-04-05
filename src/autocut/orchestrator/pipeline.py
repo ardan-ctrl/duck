@@ -28,7 +28,7 @@ def run_pipeline(repo_root: Path, episode_id: str, settings: ProviderSettings | 
     artifacts_dir = repo_root / "output" / episode_id / "artifacts"
     artifacts_dir.mkdir(parents=True, exist_ok=True)
 
-    renderer.render(scene_plan=scene_plan, output_dir=str(artifacts_dir))
+    renderer.render(scene_plan=scene_plan, output_dir=str(artifacts_dir), manifest=manifest)
 
     (artifacts_dir / "run_meta.json").write_text(
         json.dumps(

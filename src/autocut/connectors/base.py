@@ -19,5 +19,10 @@ class HooksConnector(ABC):
 
 class RenderConnector(ABC):
     @abstractmethod
-    def render(self, scene_plan: ScenePlan, output_dir: str) -> str:
+    def render(
+        self,
+        scene_plan: ScenePlan,
+        output_dir: str,
+        manifest: EpisodeManifest | None = None,
+    ) -> str:
         raise NotImplementedError

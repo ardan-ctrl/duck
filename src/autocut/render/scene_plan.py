@@ -4,7 +4,7 @@ from autocut.models import EpisodeManifest, Scene, ScenePlan, StoryBeat
 
 
 def plan_scenes(manifest: EpisodeManifest, beats: list[StoryBeat]) -> ScenePlan:
-    visuals = [p.name for p in manifest.visuals] or ["fallback_background.png"]
+    visuals = [str(p) for p in manifest.visuals] or ["fallback_background.png"]
 
     scenes: list[Scene] = []
     for i, beat in enumerate(beats):

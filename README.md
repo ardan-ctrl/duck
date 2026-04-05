@@ -49,7 +49,8 @@ python scripts/run_pipeline.py \
   --render-provider remotion_local
 ```
 
-Если `npx remotion` или `ollama` недоступны, пайплайн не падает: пишет fallback-артефакт.
+Если `npx remotion`, `ollama` или `ffmpeg` недоступны, пайплайн не падает: пишет fallback-артефакт.
+При `--render-provider ffmpeg_local` коннектор пытается собрать `final.mp4` из сцен.
 
 ## Быстрый процесс для нового ролика
 
