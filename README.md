@@ -25,41 +25,45 @@ scripts/             # CLI-скрипты для запуска стадий
 tests/               # Тесты
 ```
 
-## Провайдеры/коннекторы (плагины)
+## Локальные провайдеры/коннекторы (без подписок)
 
-В MVP используются встроенные заглушки:
-- `script_stub` — берет текст из `script.txt` и делает псевдо-ASR.
-- `rules_stub` — формирует headline-хуки по правилам.
-- `preview_stub` — пишет предпросмотр таймлайна в текстовый файл.
+Поддерживаемые значения:
+- `--asr-provider script_stub`
+- `--hooks-provider rules_stub | ollama_local`
+- `--render-provider preview_stub | remotion_local | ffmpeg_local`
 
-Их можно заменить на реальные интеграции:
-- ASR: WhisperX / faster-whisper.
-- Hooks: LLM (через structured JSON output).
-- Render: Remotion/FFmpeg backend.
+### Вариант B (красивее анимация текста)
 
-## Быстрый процесс для нового ролика
+- Python = оркестратор.
+- Remotion (локально) = рендер сцен.
+- FFmpeg = финальный mux/concat.
+- Локальная LLM через Ollama = смысловые титры.
 
-1. Положить файлы в `input/<episode_id>/`.
-2. Заполнить `episode_manifest.json`.
-3. Запустить:
-   - `python scripts/run_pipeline.py --episode <episode_id>`
-4. Проверить артефакты в `output/<episode_id>/artifacts`.
-
-Пример с явным выбором коннекторов:
+Пример запуска:
 
 ```bash
 python scripts/run_pipeline.py \
   --episode episode_demo \
   --asr-provider script_stub \
-  --hooks-provider rules_stub \
-  --render-provider preview_stub
+  --hooks-provider ollama_local \
+  --render-provider remotion_local
 ```
+
+Если `npx remotion` или `ollama` недоступны, пайплайн не падает: пишет fallback-артефакт.
+
+## Быстрый процесс для нового ролика
+
+1. Положить файлы в `input/<episode_id>/`.
+2. Заполнить `episode_manifest.json`.
+3. Запустить `scripts/run_pipeline.py` с нужными провайдерами.
+4. Проверить артефакты в `output/<episode_id>/artifacts`.
 
 ## Статусы этапов (MVP)
 
 - [x] Скелет проекта и контракты данных.
 - [x] Плагинная схема провайдеров.
+- [x] Локальный LLM-хук через Ollama (с fallback).
+- [x] Локальный Remotion/FFmpeg коннектор (с fallback).
 - [ ] Реальный ASR + таймкоды.
-- [ ] Смысловые титры (не субтитры).
 - [ ] Компоновка сцен и маскотов.
-- [ ] Рендер и QC-проверки.
+- [ ] Финальный MP4 mux/render.
