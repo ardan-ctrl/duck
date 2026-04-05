@@ -25,18 +25,41 @@ scripts/             # CLI-скрипты для запуска стадий
 tests/               # Тесты
 ```
 
+## Провайдеры/коннекторы (плагины)
+
+В MVP используются встроенные заглушки:
+- `script_stub` — берет текст из `script.txt` и делает псевдо-ASR.
+- `rules_stub` — формирует headline-хуки по правилам.
+- `preview_stub` — пишет предпросмотр таймлайна в текстовый файл.
+
+Их можно заменить на реальные интеграции:
+- ASR: WhisperX / faster-whisper.
+- Hooks: LLM (через structured JSON output).
+- Render: Remotion/FFmpeg backend.
+
 ## Быстрый процесс для нового ролика
 
 1. Положить файлы в `input/<episode_id>/`.
 2. Заполнить `episode_manifest.json`.
 3. Запустить:
    - `python scripts/run_pipeline.py --episode <episode_id>`
-4. Забрать итог из `output/<episode_id>/final.mp4`.
+4. Проверить артефакты в `output/<episode_id>/artifacts`.
+
+Пример с явным выбором коннекторов:
+
+```bash
+python scripts/run_pipeline.py \
+  --episode episode_demo \
+  --asr-provider script_stub \
+  --hooks-provider rules_stub \
+  --render-provider preview_stub
+```
 
 ## Статусы этапов (MVP)
 
 - [x] Скелет проекта и контракты данных.
-- [ ] ASR + таймкоды.
+- [x] Плагинная схема провайдеров.
+- [ ] Реальный ASR + таймкоды.
 - [ ] Смысловые титры (не субтитры).
 - [ ] Компоновка сцен и маскотов.
 - [ ] Рендер и QC-проверки.
