@@ -2,8 +2,23 @@
   "style_id": "black",
   "bg_color": "#0D0D0D",
   "fonts": {
-    "heading": { "file": "BebasNeue-Regular.ttf", "size_ratio": 0.17, "color": "#F5F5F5" },
-    "accent": { "file": "Caveat-Bold.ttf", "size_ratio": 0.06, "color": "#F4D63C" },
-    "body": { "file": "BebasNeue-Regular.ttf", "size_ratio": 0.08, "color": "#FFFFFF" }
+    "heading": {
+      "family": "Bebas Neue",
+      "google_fonts_url": "https://fonts.googleapis.com/css2?family=Bebas+Neue",
+      "size_ratio": 0.17,
+      "color": "#F5F5F5"
+    },
+    "accent": {
+      "family": "Lobster Two",
+      "google_fonts_url": "https://fonts.googleapis.com/css2?family=Lobster+Two:wght@700",
+      "size_ratio": 0.06,
+      "color": "#F4D63C"
+    },
+    "body": {
+      "family": "Bebas Neue",
+      "google_fonts_url": "https://fonts.googleapis.com/css2?family=Bebas+Neue",
+      "size_ratio": 0.08,
+      "color": "#FFFFFF"
+    }
   }
 }

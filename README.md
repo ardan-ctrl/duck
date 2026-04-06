@@ -109,6 +109,12 @@ python scripts/run_pipeline.py \
 - Контент приходит из сценария/override: например `mascot_action: "duck_teacher"` → `assets/mascots/duck_teacher.png`.
 - Для конкретного выпуска можно добавлять дополнительные медиа через `extra_media` в `episode_manifest.json`.
 
+### Fonts: Google Fonts cache (no binaries in git)
+
+- Для Remotion браузерные шрифты подключаются нативно.
+- Для локального FFmpeg/Pillow пути используются через `src/autocut/assets/font_loader.py`: при первом запуске шрифт скачивается в `~/.cache/autocut/fonts`, затем переиспользуется из кэша.
+- В репозитории не нужно хранить бинарники шрифтов.
+
 
 ## Про бинарные ассеты
 

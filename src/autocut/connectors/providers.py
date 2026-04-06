@@ -10,6 +10,7 @@ from pathlib import Path
 from urllib import request
 
 from autocut.analysis.storybeat import build_storybeats
+from autocut.assets.font_loader import resolve_font
 from autocut.analysis.transcribe import transcribe_audio
 from autocut.config.settings import ProviderSettings
 from autocut.connectors.base import ASRConnector, HooksConnector, RenderConnector
@@ -289,8 +290,16 @@ class LocalFfmpegMuxConnector(RenderConnector):
                         candidate = repo_root / "assets" / "fonts" / heading["file"]
                         if candidate.exists():
                             fontfile = str(candidate)
+                    if not fontfile:
+                        resolved = resolve_font(heading)
+                        if resolved and resolved.exists():
+                            fontfile = str(resolved)
                 if isinstance(accent, dict):
                     theme["accent_size_ratio"] = accent.get("size_ratio")
+                    if not fontfile:
+                        resolved = resolve_font(accent)
+                        if resolved and resolved.exists():
+                            fontfile = str(resolved)
                 if isinstance(body, dict):
                     theme["body_size_ratio"] = body.get("size_ratio")
         except Exception:
