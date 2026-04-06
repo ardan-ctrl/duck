@@ -25,3 +25,4 @@ def test_pipeline_writes_run_meta(tmp_path: Path) -> None:
     assert (artifacts / "scene_plan_preview.txt").exists()
     assert (artifacts / "overrides_template.json").exists()
     assert (artifacts / "qc_report.json").exists()
+    assert (artifacts / "transcript.json").exists()

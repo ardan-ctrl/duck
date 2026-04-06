@@ -39,8 +39,11 @@ tests/               # Тесты
 - Экспорт двух версий: `final.mp4` и `alt.mp4`.
 - Manifest validation с понятной ошибкой.
 - Автогенерация `overrides_template.json`.
-- Автоматический `qc_report.json` после рендера.
+- Автоматический `qc_report.json` после рендера (включая resolution/duration checks при доступном ffprobe).
 - Использование safe-zone и font профиля из `templates/styles/*.json`.
+- Transcript cache: `transcript.json` (ускоряет повторные прогоны).
+- Partial rerender сцен через `clip_signatures.json` (пересобираются только измененные сцены).
+- 3 пресета текстовых титров: `hook` / `fact` / `cta`.
 
 ## Быстрый запуск
 
@@ -64,6 +67,8 @@ python scripts/run_pipeline.py \
    - `render_outputs.json`
    - `overrides_template.json`
    - `qc_report.json`
+   - `transcript.json`
+   - `clip_signatures.json`
 
 Пример `episode_manifest.json`:
 

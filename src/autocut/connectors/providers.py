@@ -195,13 +195,28 @@ class LocalFfmpegMuxConnector(RenderConnector):
 
         return left, right, top, bottom, fontfile
 
-    def _drawtext_filter(self, headline: str, manifest: EpisodeManifest | None) -> str:
+    def _drawtext_filter(self, headline: str, manifest: EpisodeManifest | None, role: str) -> str:
         safe_headline = quality_gate_headline(headline).replace("'", "")[:50]
-        left, _right, top, _bottom, fontfile = self._style_profile(manifest)
+        left, _right, top, bottom, fontfile = self._style_profile(manifest)
+
+        size = 78
+        y = top
+        boxcolor = "black@0.35"
+        if role == "hook":
+            size = 92
+            y = top
+            boxcolor = "black@0.45"
+        elif role == "fact":
+            size = 72
+            y = top + 40
+        elif role == "cta":
+            size = 84
+            y = max(top, 1920 - bottom - 200)
+            boxcolor = "#d61020@0.55"
 
         draw = (
-            f"drawtext=text='{safe_headline}':x={left}:y={top}:fontsize=78:fontcolor=white:"
-            "box=1:boxcolor=black@0.35:boxborderw=20"
+            f"drawtext=text='{safe_headline}':x={left}:y={y}:fontsize={size}:fontcolor=white:"
+            f"box=1:boxcolor={boxcolor}:boxborderw=20"
         )
         if fontfile:
             draw += f":fontfile={fontfile}"
@@ -214,10 +229,11 @@ class LocalFfmpegMuxConnector(RenderConnector):
         width: int = 1080,
         height: int = 1920,
         manifest: EpisodeManifest | None = None,
+        role: str = "fact",
     ) -> None:
         duration = self._scene_duration(scene.start_s, scene.end_s)
         visual = Path(scene.visual_ref)
-        draw = self._drawtext_filter(scene.headline, manifest)
+        draw = self._drawtext_filter(scene.headline, manifest, role)
 
         if visual.exists() and visual.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}:
             cmd = [
@@ -267,6 +283,24 @@ class LocalFfmpegMuxConnector(RenderConnector):
             ]
         self._run(cmd)
 
+    def _scene_signature(self, scene) -> str:
+        return f"{scene.start_s:.2f}|{scene.end_s:.2f}|{scene.visual_ref}|{scene.headline}|{scene.mascot_action or ''}"
+
+    def _load_clip_signatures(self, out_dir: Path) -> dict[str, str]:
+        sig_path = out_dir / "clip_signatures.json"
+        if not sig_path.exists():
+            return {}
+        try:
+            return json.loads(sig_path.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+
+    def _save_clip_signatures(self, out_dir: Path, signatures: dict[str, str]) -> None:
+        (out_dir / "clip_signatures.json").write_text(
+            json.dumps(signatures, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
     def _export_alt_version(self, final_path: Path, alt_path: Path) -> None:
         self._run(
             [
@@ -296,10 +330,28 @@ class LocalFfmpegMuxConnector(RenderConnector):
 
         concat_list = out_dir / "concat_list.txt"
         entries: list[str] = []
+        previous = self._load_clip_signatures(out_dir)
+        current: dict[str, str] = {}
+
+        total = len(scene_plan.scenes)
         for idx, scene in enumerate(scene_plan.scenes):
             clip_path = temp_dir / f"scene_{idx:03d}.mp4"
-            self._create_scene_clip(scene, clip_path, manifest=manifest)
+            role = "fact"
+            if idx == 0:
+                role = "hook"
+            elif idx == total - 1:
+                role = "cta"
+
+            sig = self._scene_signature(scene) + f"|role={role}"
+            key = f"scene_{idx:03d}"
+            current[key] = sig
+
+            if previous.get(key) != sig or not clip_path.exists():
+                self._create_scene_clip(scene, clip_path, manifest=manifest, role=role)
+
             entries.append(f"file {shlex.quote(str(clip_path.resolve()))}")
+
+        self._save_clip_signatures(out_dir, current)
         concat_list.write_text("\n".join(entries), encoding="utf-8")
 
         stitched = out_dir / "stitched.mp4"
