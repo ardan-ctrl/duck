@@ -25,6 +25,28 @@ def quality_gate_headline(text: str) -> str:
     return " ".join(words).upper()[:80]
 
 
+
+
+BLACKLIST_WORDS = {"НУ", "КАК БЫ", "ВООБЩЕ", "В ЦЕЛОМ"}
+TRIGGER_WORDS = {"ПОЧЕМУ", "ОШИБКА", "СЕКРЕТ", "НИКОГДА", "СРАЗУ", "ВАЖНО"}
+
+
+def _rules_refine_headline(base: str, previous: str | None = None) -> str:
+    head = quality_gate_headline(base)
+    words = [w for w in head.split() if w and w not in BLACKLIST_WORDS]
+    if not words:
+        words = ["КЛЮЧЕВАЯ", "МЫСЛЬ"]
+
+    trigger_first = [w for w in words if w in TRIGGER_WORDS]
+    rest = [w for w in words if w not in TRIGGER_WORDS]
+    ordered = (trigger_first + rest)[:6]
+    candidate = " ".join(ordered)
+
+    if previous and candidate == previous:
+        candidate = (candidate + " СЕЙЧАС").strip()
+    return quality_gate_headline(candidate)
+
+
 class ScriptASRConnector(ASRConnector):
     def transcribe(self, manifest: EpisodeManifest) -> list[TranscriptSegment]:
         return transcribe_audio(manifest)
@@ -60,8 +82,10 @@ class FasterWhisperASRConnector(ASRConnector):
 class RulesHooksConnector(HooksConnector):
     def build_hooks(self, transcript: list[TranscriptSegment]) -> list[StoryBeat]:
         beats = build_storybeats(transcript)
+        previous: str | None = None
         for beat in beats:
-            beat.headline = quality_gate_headline(beat.headline)
+            beat.headline = _rules_refine_headline(beat.headline, previous=previous)
+            previous = beat.headline
         return beats
 
 
@@ -98,7 +122,7 @@ class LocalOllamaHooksConnector(HooksConnector):
             try:
                 headline = self._headline_from_llm(seg.text)
             except Exception:
-                headline = quality_gate_headline(seg.text)
+                headline = _rules_refine_headline(seg.text)
             beats.append(StoryBeat(start_s=seg.start_s, end_s=seg.end_s, headline=headline))
         return beats
 

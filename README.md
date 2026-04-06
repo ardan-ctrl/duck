@@ -47,6 +47,8 @@ tests/               # Тесты
 
 ## Быстрый запуск
 
+Скрипт перед запуском делает Preflight-проверку зависимостей и печатает статус нужных бинарей/пакетов.
+
 ```bash
 python scripts/run_pipeline.py \
   --episode episode_demo \

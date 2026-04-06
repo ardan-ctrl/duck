@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
+import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -16,6 +19,25 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _preflight(args: argparse.Namespace) -> dict[str, str]:
+    report: dict[str, str] = {}
+
+    if args.asr_provider == "faster_whisper_local":
+        report["faster_whisper"] = "ok" if importlib.util.find_spec("faster_whisper") else "missing"
+    if args.hooks_provider == "ollama_local":
+        report["ollama"] = "ok" if shutil.which("ollama") else "missing"
+
+    if args.render_provider == "ffmpeg_local":
+        report["ffmpeg"] = "ok" if shutil.which("ffmpeg") else "missing"
+        report["ffprobe"] = "ok" if shutil.which("ffprobe") else "missing"
+    elif args.render_provider == "remotion_local":
+        report["npx"] = "ok" if shutil.which("npx") else "missing"
+
+    if not report:
+        report["preflight"] = "no external dependencies required"
+    return report
+
+
 def main() -> None:
     args = parse_args()
     repo_root = Path(__file__).resolve().parents[1]
@@ -23,6 +45,9 @@ def main() -> None:
 
     from autocut.config.settings import ProviderSettings
     from autocut.orchestrator.pipeline import run_pipeline
+
+    preflight = _preflight(args)
+    print("Preflight:", json.dumps(preflight, ensure_ascii=False))
 
     settings = ProviderSettings(
         asr_provider=args.asr_provider,
