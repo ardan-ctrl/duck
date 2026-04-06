@@ -1,0 +1,10 @@
+{
+  "id": "strike_through",
+  "type": "shape",
+  "animation": {
+    "in": "swipe_diagonal",
+    "hold": "none",
+    "out": "none"
+  },
+  "duration_s": 0.7
+}

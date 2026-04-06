@@ -1,0 +1,14 @@
+{
+  "id": "base_scene",
+  "layers": [
+    "background_visual",
+    "headline_text",
+    "annotation_text",
+    "mascot",
+    "stickers"
+  ],
+  "transitions": {
+    "in": "hard_cut",
+    "out": "hard_cut"
+  }
+}

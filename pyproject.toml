@@ -1,0 +1,15 @@
+[project]
+name = "autocut-serial-reels"
+version = "0.1.0"
+description = "Automatic short-form video assembly pipeline"
+requires-python = ">=3.11"
+dependencies = [
+  "pydantic>=2.8.0",
+  "ffmpeg-python>=0.2.0",
+  "faster-whisper>=1.0.0",
+  "ollama>=0.3.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+addopts = "-q"

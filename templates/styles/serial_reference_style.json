@@ -1,0 +1,38 @@
+{
+  "resolution": "1080x1920",
+  "fps": 30,
+  "palette": {
+    "primary": "#C5121D",
+    "secondary": "#143DFF",
+    "bg_dark": "#0D0D0F",
+    "text_light": "#F5F5F2",
+    "accent_yellow": "#F4D63C",
+    "accent_orange": "#EE8B2C"
+  },
+  "typography": {
+    "headline_font": "Headline-Bold.ttf",
+    "annotation_font": "Scribble-MonoItalic.ttf"
+  },
+  "safe_zone": {
+    "top": 170,
+    "bottom": 290,
+    "left": 56,
+    "right": 56
+  },
+  "headline_rules": {
+    "max_words": 6,
+    "min_duration_s": 1.1,
+    "max_duration_s": 3.2,
+    "uppercase": true
+  },
+  "text_presets": {
+    "hook": {"font_size": 92, "box_alpha": 0.45, "y": 170},
+    "fact": {"font_size": 72, "box_alpha": 0.35, "y": 220},
+    "cta": {"font_size": 84, "box_alpha": 0.55, "y": 1430}
+  },
+  "mascot_rules": {
+    "default_entry": "pop_in",
+    "frequency": "every_3_scenes",
+    "anchors": ["bottom_right", "left_center"]
+  }
+}

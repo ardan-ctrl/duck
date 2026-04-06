@@ -1,0 +1,8 @@
+{
+  "id": "cta_scene",
+  "description": "Closing call-to-action scene",
+  "layers": ["background_visual", "headline_text_cta", "mascot", "cta_badge"],
+  "background_palette_mode": "bg_dark",
+  "transition_in": "flash_cut",
+  "transition_out": "hard_cut"
+}

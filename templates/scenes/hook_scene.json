@@ -1,0 +1,8 @@
+{
+  "id": "hook_scene",
+  "description": "High-contrast opening scene",
+  "layers": ["background_visual", "headline_text_hook", "annotation_scribble", "stickers", "mascot"],
+  "background_palette_mode": "primary",
+  "transition_in": "hard_cut",
+  "transition_out": "smash_zoom"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "scribble_overlay",
+  "type": "annotation",
+  "animation": {
+    "in": "draw_on",
+    "hold": "none",
+    "out": "fade_out"
+  },
+  "duration_s": 1.0
+}

@@ -1,0 +1,17 @@
+{
+  "mascots": [
+    {
+      "id": "duck_main",
+      "expected_files": [
+        "duck_main_idle.png",
+        "duck_main_pointing.png",
+        "duck_main_celebrate.png"
+      ],
+      "anchor": "bottom_right",
+      "default_scale": 0.35,
+      "entry_motion": "pop_in",
+      "exit_motion": "fade_out"
+    }
+  ],
+  "notes": "Place cut-out PNG/WebP files here with transparent background."
+}

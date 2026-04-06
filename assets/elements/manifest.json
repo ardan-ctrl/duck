@@ -1,0 +1,7 @@
+{
+  "elements": {
+    "stickers": ["pin_red.png", "tape_white.png", "question_block.png"],
+    "overlays": ["scratch_overlay.png", "paper_noise.png", "light_grain.png"]
+  },
+  "notes": "Optional decorative assets used by scene templates."
+}

@@ -1,0 +1,19 @@
+{
+  "description": "Palette extracted from provided reference frames (red/blue/black editorial style)",
+  "colors": {
+    "brand_red": "#C5121D",
+    "brand_blue": "#143DFF",
+    "ink_black": "#0D0D0F",
+    "paper_white": "#F5F5F2",
+    "accent_yellow": "#F4D63C",
+    "accent_orange": "#EE8B2C",
+    "overlay_gray": "#8B8B8B"
+  },
+  "usage": {
+    "hook_bg": "brand_red",
+    "fact_bg": "brand_blue",
+    "contrast_bg": "ink_black",
+    "primary_text": "paper_white",
+    "cta_accent": "accent_yellow"
+  }
+}

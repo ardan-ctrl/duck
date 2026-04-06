@@ -1,0 +1,8 @@
+{
+  "id": "fact_scene",
+  "description": "Main explanatory section",
+  "layers": ["background_visual", "headline_text_fact", "annotation_scribble", "support_visual"],
+  "background_palette_mode": "secondary",
+  "transition_in": "hard_cut",
+  "transition_out": "swipe_left"
+}
