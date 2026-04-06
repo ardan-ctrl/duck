@@ -1,0 +1,10 @@
+[project]
+name = "autocut-serial-reels"
+version = "0.1.0"
+description = "Automatic short-form video assembly pipeline"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+addopts = "-q"

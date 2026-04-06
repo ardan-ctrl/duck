@@ -1,0 +1,10 @@
+{
+  "audio": "voiceover.wav",
+  "script": "script.txt",
+  "visuals": [
+    "slide_01.png",
+    "slide_02.png",
+    "clip_03.mp4"
+  ],
+  "style_id": "default_style"
+}
