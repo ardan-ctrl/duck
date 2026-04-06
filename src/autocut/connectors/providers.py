@@ -60,8 +60,8 @@ class FasterWhisperASRConnector(ASRConnector):
 class RulesHooksConnector(HooksConnector):
     def build_hooks(self, transcript: list[TranscriptSegment]) -> list[StoryBeat]:
         beats = build_storybeats(transcript)
-        for b in beats:
-            b.headline = quality_gate_headline(b.headline)
+        for beat in beats:
+            beat.headline = quality_gate_headline(beat.headline)
         return beats
 
 
@@ -108,8 +108,8 @@ class PreviewRenderConnector(RenderConnector):
         output_path = Path(output_dir) / "scene_plan_preview.txt"
         output_path.write_text(
             "\n".join(
-                f"[{s.start_s:.2f}-{s.end_s:.2f}] {s.headline} -> {Path(s.visual_ref).name}"
-                for s in scene_plan.scenes
+                f"[{scene.start_s:.2f}-{scene.end_s:.2f}] {scene.headline} -> {Path(scene.visual_ref).name}"
+                for scene in scene_plan.scenes
             ),
             encoding="utf-8",
         )
@@ -166,10 +166,58 @@ class LocalFfmpegMuxConnector(RenderConnector):
     def _run(self, cmd: list[str]) -> None:
         subprocess.run(cmd, check=True, capture_output=True, text=True)
 
-    def _create_scene_clip(self, scene, clip_path: Path, width: int = 1080, height: int = 1920) -> None:
+    def _style_profile(self, manifest: EpisodeManifest | None) -> tuple[int, int, int, int, str | None]:
+        left, right, top, bottom = 60, 60, 180, 280
+        fontfile: str | None = None
+        if manifest is None:
+            return left, right, top, bottom, fontfile
+
+        repo_root = manifest.script_path.parents[2]
+        style_file = repo_root / "templates" / "styles" / f"{manifest.style_id}.json"
+        if not style_file.exists():
+            style_file = repo_root / "templates" / "styles" / "default_style.json"
+
+        try:
+            raw = json.loads(style_file.read_text(encoding="utf-8"))
+            safe = raw.get("safe_zone", {})
+            left = int(safe.get("left", left))
+            right = int(safe.get("right", right))
+            top = int(safe.get("top", top))
+            bottom = int(safe.get("bottom", bottom))
+
+            font_name = raw.get("typography", {}).get("headline_font")
+            if font_name:
+                candidate = repo_root / "assets" / "fonts" / font_name
+                if candidate.exists():
+                    fontfile = str(candidate)
+        except Exception:
+            pass
+
+        return left, right, top, bottom, fontfile
+
+    def _drawtext_filter(self, headline: str, manifest: EpisodeManifest | None) -> str:
+        safe_headline = quality_gate_headline(headline).replace("'", "")[:50]
+        left, _right, top, _bottom, fontfile = self._style_profile(manifest)
+
+        draw = (
+            f"drawtext=text='{safe_headline}':x={left}:y={top}:fontsize=78:fontcolor=white:"
+            "box=1:boxcolor=black@0.35:boxborderw=20"
+        )
+        if fontfile:
+            draw += f":fontfile={fontfile}"
+        return draw
+
+    def _create_scene_clip(
+        self,
+        scene,
+        clip_path: Path,
+        width: int = 1080,
+        height: int = 1920,
+        manifest: EpisodeManifest | None = None,
+    ) -> None:
         duration = self._scene_duration(scene.start_s, scene.end_s)
         visual = Path(scene.visual_ref)
-        safe_headline = quality_gate_headline(scene.headline).replace("'", "")[:50]
+        draw = self._drawtext_filter(scene.headline, manifest)
 
         if visual.exists() and visual.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}:
             cmd = [
@@ -182,7 +230,7 @@ class LocalFfmpegMuxConnector(RenderConnector):
                 "-i",
                 str(visual),
                 "-vf",
-                f"scale={width}:{height}:force_original_aspect_ratio=cover,crop={width}:{height},drawtext=text='{safe_headline}':x=(w-text_w)/2:y=120:fontsize=78:fontcolor=white:box=1:boxcolor=black@0.35:boxborderw=20",
+                f"scale={width}:{height}:force_original_aspect_ratio=cover,crop={width}:{height},{draw}",
                 "-r",
                 "30",
                 str(clip_path),
@@ -198,7 +246,7 @@ class LocalFfmpegMuxConnector(RenderConnector):
                 "-i",
                 str(visual),
                 "-vf",
-                f"scale={width}:{height}:force_original_aspect_ratio=cover,crop={width}:{height},drawtext=text='{safe_headline}':x=(w-text_w)/2:y=120:fontsize=78:fontcolor=white:box=1:boxcolor=black@0.35:boxborderw=20",
+                f"scale={width}:{height}:force_original_aspect_ratio=cover,crop={width}:{height},{draw}",
                 "-r",
                 "30",
                 str(clip_path),
@@ -214,7 +262,7 @@ class LocalFfmpegMuxConnector(RenderConnector):
                 "-i",
                 f"color=c=black:s={width}x{height}:r=30",
                 "-vf",
-                f"drawtext=text='{safe_headline}':x=(w-text_w)/2:y=120:fontsize=78:fontcolor=white:box=1:boxcolor=black@0.35:boxborderw=20",
+                draw,
                 str(clip_path),
             ]
         self._run(cmd)
@@ -250,24 +298,26 @@ class LocalFfmpegMuxConnector(RenderConnector):
         entries: list[str] = []
         for idx, scene in enumerate(scene_plan.scenes):
             clip_path = temp_dir / f"scene_{idx:03d}.mp4"
-            self._create_scene_clip(scene, clip_path)
+            self._create_scene_clip(scene, clip_path, manifest=manifest)
             entries.append(f"file {shlex.quote(str(clip_path.resolve()))}")
         concat_list.write_text("\n".join(entries), encoding="utf-8")
 
         stitched = out_dir / "stitched.mp4"
-        self._run([
-            "ffmpeg",
-            "-y",
-            "-f",
-            "concat",
-            "-safe",
-            "0",
-            "-i",
-            str(concat_list),
-            "-c",
-            "copy",
-            str(stitched),
-        ])
+        self._run(
+            [
+                "ffmpeg",
+                "-y",
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                str(concat_list),
+                "-c",
+                "copy",
+                str(stitched),
+            ]
+        )
 
         final_path = out_dir / "final.mp4"
         has_voice = bool(manifest and manifest.audio_path.exists() and manifest.audio_path.stat().st_size > 0)
@@ -299,20 +349,22 @@ class LocalFfmpegMuxConnector(RenderConnector):
                 ]
             )
         elif has_voice and manifest:
-            self._run([
-                "ffmpeg",
-                "-y",
-                "-i",
-                str(stitched),
-                "-i",
-                str(manifest.audio_path),
-                "-c:v",
-                "copy",
-                "-c:a",
-                "aac",
-                "-shortest",
-                str(final_path),
-            ])
+            self._run(
+                [
+                    "ffmpeg",
+                    "-y",
+                    "-i",
+                    str(stitched),
+                    "-i",
+                    str(manifest.audio_path),
+                    "-c:v",
+                    "copy",
+                    "-c:a",
+                    "aac",
+                    "-shortest",
+                    str(final_path),
+                ]
+            )
         else:
             stitched.replace(final_path)
 

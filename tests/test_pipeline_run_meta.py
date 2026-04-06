@@ -15,12 +15,13 @@ def test_pipeline_writes_run_meta(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     (episode_dir / "script.txt").write_text("one. two.", encoding="utf-8")
-    (episode_dir / "voice.wav").write_bytes(b"")
-    (episode_dir / "slide.png").write_bytes(b"")
+    (episode_dir / "voice.wav").write_bytes(b"dummy")
+    (episode_dir / "slide.png").write_bytes(b"dummy")
 
     run_pipeline(repo_root=repo_root, episode_id=episode_id, settings=ProviderSettings())
 
-    meta = repo_root / "output" / episode_id / "artifacts" / "run_meta.json"
-    preview = repo_root / "output" / episode_id / "artifacts" / "scene_plan_preview.txt"
-    assert meta.exists()
-    assert preview.exists()
+    artifacts = repo_root / "output" / episode_id / "artifacts"
+    assert (artifacts / "run_meta.json").exists()
+    assert (artifacts / "scene_plan_preview.txt").exists()
+    assert (artifacts / "overrides_template.json").exists()
+    assert (artifacts / "qc_report.json").exists()

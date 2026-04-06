@@ -32,18 +32,17 @@ tests/               # Тесты
 - `--hooks-provider rules_stub | ollama_local`
 - `--render-provider preview_stub | remotion_local | ffmpeg_local`
 
-### Вариант B (красивее анимация текста)
+## Iteration B + C (реализовано)
 
-- Python = оркестратор.
-- Remotion (локально) = рендер сцен.
-- FFmpeg = финальный mux/concat.
-- Локальная LLM через Ollama = смысловые титры.
-- Локальный ASR через faster-whisper = реальные таймкоды речи.
-- Semantic hooks quality gate = фильтрация/нормализация заголовков.
-- Музыка + ducking (voice приоритет) при ffmpeg-рендере.
+- Semantic hooks quality gate.
+- Музыка + ducking (voice приоритет).
 - Экспорт двух версий: `final.mp4` и `alt.mp4`.
+- Manifest validation с понятной ошибкой.
+- Автогенерация `overrides_template.json`.
+- Автоматический `qc_report.json` после рендера.
+- Использование safe-zone и font профиля из `templates/styles/*.json`.
 
-Пример запуска:
+## Быстрый запуск
 
 ```bash
 python scripts/run_pipeline.py \
@@ -53,37 +52,31 @@ python scripts/run_pipeline.py \
   --render-provider ffmpeg_local
 ```
 
-Если `npx remotion`, `ollama` или `ffmpeg` недоступны, пайплайн не падает: пишет fallback-артефакт.
-При `--render-provider ffmpeg_local` коннектор пытается собрать `final.mp4` из сцен.
-
 ## Быстрый процесс для нового ролика
 
 1. Положить файлы в `input/<episode_id>/`.
 2. Заполнить `episode_manifest.json` (можно добавить `music`).
-3. (Опционально) добавить `overrides` внутри манифеста для ручных точечных правок.
-4. Запустить `scripts/run_pipeline.py` с нужными провайдерами.
-5. Проверить артефакты в `output/<episode_id>/artifacts`.
+3. (Опционально) добавить `overrides` в манифест.
+4. Запустить `scripts/run_pipeline.py`.
+5. Проверить `output/<episode_id>/artifacts`:
+   - `final.mp4`
+   - `alt.mp4`
+   - `render_outputs.json`
+   - `overrides_template.json`
+   - `qc_report.json`
 
-Пример `overrides` в `episode_manifest.json`:
+Пример `episode_manifest.json`:
 
 ```json
 {
+  "audio": "voiceover.wav",
   "music": "bg_music.mp3",
+  "script": "script.txt",
+  "visuals": ["slide_01.png", "slide_02.png", "clip_03.mp4"],
+  "style_id": "default_style",
   "overrides": [
     {"scene_index": 0, "headline": "ПЕРЕПИСАННЫЙ ХУК"},
     {"scene_index": 2, "visual_ref": "my_custom_slide.png"}
   ]
 }
 ```
-
-## Статусы этапов (MVP)
-
-- [x] Скелет проекта и контракты данных.
-- [x] Плагинная схема провайдеров.
-- [x] Локальный LLM-хук через Ollama (с fallback).
-- [x] Semantic hooks quality gate.
-- [x] Локальный Remotion/FFmpeg коннектор (с fallback).
-- [x] Музыка + ducking для voice-over при наличии music-трека.
-- [x] Экспорт `final.mp4` + `alt.mp4`.
-- [x] Scene overrides для ручной точечной правки.
-- [ ] Финальный стиль маскотов и motion-шаблонов под production.
