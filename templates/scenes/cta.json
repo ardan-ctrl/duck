@@ -1,0 +1,9 @@
+{
+  "scene_type": "cta",
+  "layers": [
+    { "type": "background", "source": "style.bg_color" },
+    { "type": "media", "slot": "visual_ref", "position": { "x": 0.0, "y": 0.5 }, "scale": 1.0, "opacity": 0.45 },
+    { "type": "text", "slot": "headline", "font": "heading", "anchor": "bottom-center", "x": 0.5, "y": 0.78, "wrap_width": 0.92 },
+    { "type": "mascot", "slot": "mascot_action", "anchor": "bottom-right", "x": 0.86, "y": 0.86, "scale": 0.38 }
+  ]
+}

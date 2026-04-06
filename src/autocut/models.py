@@ -8,10 +8,12 @@ from pathlib import Path
 class SceneOverride:
     scene_index: int
     headline: str | None = None
+    accent_top: str | None = None
     visual_ref: str | None = None
     start_s: float | None = None
     end_s: float | None = None
     mascot_action: str | None = None
+    scene_type: str | None = None
 
 
 @dataclass
@@ -20,6 +22,7 @@ class EpisodeManifest:
     audio_path: Path
     script_path: Path
     visuals: list[Path] = field(default_factory=list)
+    extra_media: list[Path] = field(default_factory=list)
     style_id: str = "default_style"
     music_path: Path | None = None
     overrides: list[SceneOverride] = field(default_factory=list)
@@ -46,7 +49,10 @@ class Scene:
     end_s: float
     visual_ref: str
     headline: str
+    scene_type: str = "fact"
+    accent_top: str | None = None
     mascot_action: str | None = None
+    slots: dict[str, str | float | None] = field(default_factory=dict)
 
 
 @dataclass

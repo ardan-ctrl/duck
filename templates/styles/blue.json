@@ -1,0 +1,9 @@
+{
+  "style_id": "blue",
+  "bg_color": "#143DFF",
+  "fonts": {
+    "heading": { "file": "BebasNeue-Regular.ttf", "size_ratio": 0.17, "color": "#FFFFFF" },
+    "accent": { "file": "Caveat-Bold.ttf", "size_ratio": 0.06, "color": "#EAF0FF" },
+    "body": { "file": "BebasNeue-Regular.ttf", "size_ratio": 0.08, "color": "#FFFFFF" }
+  }
+}

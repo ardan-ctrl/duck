@@ -100,6 +100,15 @@ python scripts/run_pipeline.py \
 
 Подробный разбор по сборке библиотеки стиля из референсов: `docs/STYLE_LIBRARY_SETUP.md`.
 
+### Slot-based templates (rules, not content)
+
+Система строится как `slots + rules`: шаблоны не хранят конкретный текст/маскота, а описывают раскладку слоёв и имена слотов.
+
+- `templates/styles/red.json | blue.json | black.json` — палитры и пары шрифтов (с `size_ratio` для масштабирования под любое разрешение).
+- `templates/scenes/hook.json | fact.json | cta.json` — абстрактные сцены со слотами (`headline`, `accent_top`, `visual_ref`, `mascot_action`).
+- Контент приходит из сценария/override: например `mascot_action: "duck_teacher"` → `assets/mascots/duck_teacher.png`.
+- Для конкретного выпуска можно добавлять дополнительные медиа через `extra_media` в `episode_manifest.json`.
+
 
 ## Про бинарные ассеты
 

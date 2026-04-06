@@ -250,11 +250,12 @@ class LocalFfmpegMuxConnector(RenderConnector):
     def _run(self, cmd: list[str]) -> None:
         subprocess.run(cmd, check=True, capture_output=True, text=True)
 
-    def _style_profile(self, manifest: EpisodeManifest | None) -> tuple[int, int, int, int, str | None]:
+    def _style_profile(self, manifest: EpisodeManifest | None) -> tuple[int, int, int, int, str | None, dict[str, object]]:
         left, right, top, bottom = 60, 60, 180, 280
         fontfile: str | None = None
+        theme: dict[str, object] = {"bg_color": "#000000", "heading_size_ratio": None, "accent_size_ratio": None, "body_size_ratio": None}
         if manifest is None:
-            return left, right, top, bottom, fontfile
+            return left, right, top, bottom, fontfile, theme
 
         repo_root = manifest.script_path.parents[2]
         style_file = repo_root / "templates" / "styles" / f"{manifest.style_id}.json"
@@ -274,18 +275,38 @@ class LocalFfmpegMuxConnector(RenderConnector):
                 candidate = repo_root / "assets" / "fonts" / font_name
                 if candidate.exists():
                     fontfile = str(candidate)
+
+            if isinstance(raw.get("bg_color"), str):
+                theme["bg_color"] = raw["bg_color"]
+            fonts = raw.get("fonts", {})
+            if isinstance(fonts, dict):
+                heading = fonts.get("heading", {})
+                accent = fonts.get("accent", {})
+                body = fonts.get("body", {})
+                if isinstance(heading, dict):
+                    theme["heading_size_ratio"] = heading.get("size_ratio")
+                    if isinstance(heading.get("file"), str):
+                        candidate = repo_root / "assets" / "fonts" / heading["file"]
+                        if candidate.exists():
+                            fontfile = str(candidate)
+                if isinstance(accent, dict):
+                    theme["accent_size_ratio"] = accent.get("size_ratio")
+                if isinstance(body, dict):
+                    theme["body_size_ratio"] = body.get("size_ratio")
         except Exception:
             pass
 
-        return left, right, top, bottom, fontfile
+        return left, right, top, bottom, fontfile, theme
 
-    def _drawtext_filter(self, headline: str, manifest: EpisodeManifest | None, role: str) -> str:
-        safe_headline = quality_gate_headline(headline).replace("'", "")[:50]
-        left, _right, top, bottom, fontfile = self._style_profile(manifest)
+    def _drawtext_filter(self, scene, manifest: EpisodeManifest | None, role: str) -> str:
+        safe_headline = quality_gate_headline(scene.headline).replace("'", "")[:50]
+        left, _right, top, bottom, fontfile, theme = self._style_profile(manifest)
 
         size = 78
         y = top
         boxcolor = "black@0.35"
+        if isinstance(theme.get("heading_size_ratio"), (int, float)):
+            size = int(1920 * float(theme["heading_size_ratio"]))
         if role == "hook":
             size = 92
             y = top
@@ -298,12 +319,22 @@ class LocalFfmpegMuxConnector(RenderConnector):
             y = max(top, 1920 - bottom - 200)
             boxcolor = "#d61020@0.55"
 
-        draw = (
+        font_opt = f":fontfile={fontfile}" if fontfile else ""
+        lines = [
             f"drawtext=text='{safe_headline}':x={left}:y={y}:fontsize={size}:fontcolor=white:"
-            f"box=1:boxcolor={boxcolor}:boxborderw=20"
-        )
-        if fontfile:
-            draw += f":fontfile={fontfile}"
+            f"box=1:boxcolor={boxcolor}:boxborderw=20{font_opt}"
+        ]
+        accent = (scene.accent_top or scene.slots.get("accent_top") or "") if hasattr(scene, "slots") else ""
+        if accent:
+            accent_safe = quality_gate_headline(str(accent)).replace("'", "")[:40]
+            accent_size = int(1920 * 0.06)
+            if isinstance(theme.get("accent_size_ratio"), (int, float)):
+                accent_size = int(1920 * float(theme["accent_size_ratio"]))
+            lines.append(
+                f"drawtext=text='{accent_safe}':x={left}:y={max(20, y - 150)}:fontsize={accent_size}:fontcolor=white:box=0{font_opt}"
+            )
+
+        draw = ",".join(lines)
         return draw
 
     def _create_scene_clip(
@@ -317,7 +348,7 @@ class LocalFfmpegMuxConnector(RenderConnector):
     ) -> None:
         duration = self._scene_duration(scene.start_s, scene.end_s)
         visual = Path(scene.visual_ref)
-        draw = self._drawtext_filter(scene.headline, manifest, role)
+        draw = self._drawtext_filter(scene, manifest, role)
 
         if visual.exists() and visual.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}:
             cmd = [
@@ -332,8 +363,10 @@ class LocalFfmpegMuxConnector(RenderConnector):
                 "-r", "30", str(clip_path),
             ]
         else:
+            _left, _right, _top, _bottom, _fontfile, theme = self._style_profile(manifest)
+            bg = theme.get("bg_color", "#000000")
             cmd = [
-                "ffmpeg", "-y", "-f", "lavfi", "-t", f"{duration:.2f}", "-i", f"color=c=black:s={width}x{height}:r=30",
+                "ffmpeg", "-y", "-f", "lavfi", "-t", f"{duration:.2f}", "-i", f"color=c={bg}:s={width}x{height}:r=30",
                 "-vf", draw, str(clip_path),
             ]
         self._run(cmd)

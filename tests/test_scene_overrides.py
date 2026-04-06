@@ -15,13 +15,15 @@ def test_scene_overrides_apply(tmp_path: Path) -> None:
     (ep_dir / "voice.wav").write_bytes(b"")
     (ep_dir / "slide.png").write_bytes(b"")
     (ep_dir / "custom.png").write_bytes(b"")
+    (ep_dir / "extra.mp4").write_bytes(b"")
     (ep_dir / "episode_manifest.json").write_text(
         """{
         "audio": "voice.wav",
         "script": "script.txt",
         "visuals": ["slide.png"],
+        "extra_media": ["extra.mp4"],
         "overrides": [
-            {"scene_index": 0, "headline": "МОЙ ТЕКСТ", "visual_ref": "custom.png"}
+            {"scene_index": 0, "headline": "МОЙ ТЕКСТ", "accent_top":"ВАЖНО", "visual_ref": "custom.png", "scene_type":"hook"}
         ]
     }""",
         encoding="utf-8",
@@ -32,4 +34,7 @@ def test_scene_overrides_apply(tmp_path: Path) -> None:
     plan = plan_scenes(manifest, beats)
 
     assert plan.scenes[0].headline == "МОЙ ТЕКСТ"
+    assert plan.scenes[0].accent_top == "ВАЖНО"
+    assert plan.scenes[0].scene_type == "hook"
+    assert plan.scenes[0].slots["accent_top"] == "ВАЖНО"
     assert plan.scenes[0].visual_ref.endswith("custom.png")

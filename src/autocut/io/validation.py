@@ -19,6 +19,8 @@ def validate_manifest_raw(raw: dict) -> list[str]:
 
     if "visuals" in raw and not isinstance(raw["visuals"], list):
         errors.append("visuals must be a list")
+    if "extra_media" in raw and not isinstance(raw["extra_media"], list):
+        errors.append("extra_media must be a list")
 
     if "overrides" in raw and not isinstance(raw["overrides"], list):
         errors.append("overrides must be a list")
@@ -39,9 +41,9 @@ def validate_manifest(manifest: EpisodeManifest) -> list[str]:
     if not manifest.visuals:
         errors.append("no visuals configured")
 
-    for i, visual in enumerate(manifest.visuals):
+    for i, visual in enumerate([*manifest.visuals, *manifest.extra_media]):
         if not Path(visual).exists():
-            errors.append(f"visual[{i}] not found: {visual}")
+            errors.append(f"media[{i}] not found: {visual}")
 
     for ov in manifest.overrides:
         if ov.scene_index < 0:

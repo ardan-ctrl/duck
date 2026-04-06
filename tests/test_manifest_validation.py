@@ -28,3 +28,14 @@ def test_manifest_schema_validation_for_visuals_type(tmp_path: Path) -> None:
     )
     with pytest.raises(ManifestValidationError):
         load_manifest(tmp_path, "e")
+
+
+def test_manifest_schema_validation_for_extra_media_type(tmp_path: Path) -> None:
+    ep = tmp_path / "input" / "e2"
+    ep.mkdir(parents=True)
+    (ep / "episode_manifest.json").write_text(
+        '{"audio":"a.wav","script":"s.txt","visuals":[],"extra_media":"wrong-type"}',
+        encoding="utf-8",
+    )
+    with pytest.raises(ManifestValidationError):
+        load_manifest(tmp_path, "e2")

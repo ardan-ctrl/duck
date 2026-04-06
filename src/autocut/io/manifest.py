@@ -22,10 +22,12 @@ def load_manifest(repo_root: Path, episode_id: str) -> EpisodeManifest:
             SceneOverride(
                 scene_index=int(item["scene_index"]),
                 headline=item.get("headline"),
+                accent_top=item.get("accent_top"),
                 visual_ref=item.get("visual_ref"),
                 start_s=item.get("start_s"),
                 end_s=item.get("end_s"),
                 mascot_action=item.get("mascot_action"),
+                scene_type=item.get("scene_type"),
             )
         )
 
@@ -36,6 +38,7 @@ def load_manifest(repo_root: Path, episode_id: str) -> EpisodeManifest:
         audio_path=episode_dir / raw["audio"],
         script_path=episode_dir / raw["script"],
         visuals=[episode_dir / p for p in raw.get("visuals", [])],
+        extra_media=[episode_dir / p for p in raw.get("extra_media", [])],
         style_id=raw.get("style_id", "default_style"),
         music_path=(episode_dir / music_rel) if music_rel else None,
         overrides=overrides,
