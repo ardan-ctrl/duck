@@ -52,7 +52,8 @@ python scripts/run_pipeline.py \
   --episode episode_demo \
   --asr-provider faster_whisper_local \
   --hooks-provider ollama_local \
-  --render-provider ffmpeg_local
+  --render-provider ffmpeg_local \
+  --from-scene 0 --to-scene 5
 ```
 
 ## Быстрый процесс для нового ролика
@@ -60,7 +61,7 @@ python scripts/run_pipeline.py \
 1. Положить файлы в `input/<episode_id>/`.
 2. Заполнить `episode_manifest.json` (можно добавить `music`).
 3. (Опционально) добавить `overrides` в манифест.
-4. Запустить `scripts/run_pipeline.py`.
+4. Запустить `scripts/run_pipeline.py` (можно ограничить диапазон сцен `--from-scene/--to-scene`).
 5. Проверить `output/<episode_id>/artifacts`:
    - `final.mp4`
    - `alt.mp4`

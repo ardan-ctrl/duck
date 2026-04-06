@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from autocut.io.validation import ManifestValidationError, validate_manifest_raw
 from autocut.models import EpisodeManifest, SceneOverride
 
 
@@ -10,6 +11,10 @@ def load_manifest(repo_root: Path, episode_id: str) -> EpisodeManifest:
     episode_dir = repo_root / "input" / episode_id
     manifest_path = episode_dir / "episode_manifest.json"
     raw = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    raw_errors = validate_manifest_raw(raw)
+    if raw_errors:
+        raise ManifestValidationError("Manifest schema validation failed:\n" + "\n".join(f"- {e}" for e in raw_errors))
 
     overrides: list[SceneOverride] = []
     for item in raw.get("overrides", []):

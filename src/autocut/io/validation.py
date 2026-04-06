@@ -9,6 +9,26 @@ class ManifestValidationError(ValueError):
     pass
 
 
+def validate_manifest_raw(raw: dict) -> list[str]:
+    errors: list[str] = []
+
+    required = ["audio", "script", "visuals"]
+    for key in required:
+        if key not in raw:
+            errors.append(f"missing required field: {key}")
+
+    if "visuals" in raw and not isinstance(raw["visuals"], list):
+        errors.append("visuals must be a list")
+
+    if "overrides" in raw and not isinstance(raw["overrides"], list):
+        errors.append("overrides must be a list")
+
+    if "style_id" in raw and not isinstance(raw["style_id"], str):
+        errors.append("style_id must be a string")
+
+    return errors
+
+
 def validate_manifest(manifest: EpisodeManifest) -> list[str]:
     errors: list[str] = []
 

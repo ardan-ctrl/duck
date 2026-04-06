@@ -11,6 +11,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--asr-provider", default="script_stub")
     parser.add_argument("--hooks-provider", default="rules_stub")
     parser.add_argument("--render-provider", default="preview_stub")
+    parser.add_argument("--from-scene", type=int, default=None)
+    parser.add_argument("--to-scene", type=int, default=None)
     return parser.parse_args()
 
 
@@ -27,7 +29,13 @@ def main() -> None:
         hooks_provider=args.hooks_provider,
         render_provider=args.render_provider,
     )
-    run_pipeline(repo_root=repo_root, episode_id=args.episode, settings=settings)
+    run_pipeline(
+        repo_root=repo_root,
+        episode_id=args.episode,
+        settings=settings,
+        from_scene=args.from_scene,
+        to_scene=args.to_scene,
+    )
 
 
 if __name__ == "__main__":
